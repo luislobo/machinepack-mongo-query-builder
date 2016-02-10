@@ -1,0 +1,28 @@
+{
+  "name": "machinepack-mongo-query-builder",
+  "version": "0.1.0",
+  "description": "Transforms RQL to mongo queries",
+  "scripts": {
+    "test": "node ./node_modules/test-machinepack-mocha/bin/testmachinepack-mocha.js"
+  },
+  "keywords": [
+    "mongo-query-builder",
+    "machines",
+    "machinepack"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "machine": "^10.0.0"
+  },
+  "devDependencies": {
+    "test-machinepack-mocha": "^2.0.0"
+  },
+  "machinepack": {
+    "friendlyName": "mongo-query-builder",
+    "machineDir": "machines/",
+    "machines": [
+      "generate-query"
+    ]
+  }
+}

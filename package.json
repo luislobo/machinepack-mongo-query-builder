@@ -13,10 +13,13 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "machine": "^10.0.0"
+    "lodash": "4.3.0",
+    "machine": "10.4.0"
   },
   "devDependencies": {
-    "test-machinepack-mocha": "^2.0.0"
+    "eslint": "1.10.3",
+    "espree": "3.0.1",
+    "mocha": "2.4.5"
   },
   "machinepack": {
     "friendlyName": "mongo-query-builder",

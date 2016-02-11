@@ -4,7 +4,7 @@ var assert = require('assert');
 
 describe('Builder ::', function() {
   describe('OFFSET statements', function() {
-    it.only('should generate a simple query with a OFFSET statement', function(done) {
+    it('should generate a simple query with a OFFSET statement', function(done) {
       var tree = analyze({
         select: '*',
         from: 'users',

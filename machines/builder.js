@@ -4,7 +4,7 @@ module.exports = {
   friendlyName: 'Builder',
 
 
-  description: 'Uses MQuery to build up a Mongo query',
+  description: 'Build a declaritive Mongo query',
 
 
   cacheable: true,
@@ -154,15 +154,63 @@ module.exports = {
     Query.prototype.where = function where(attribute, modifier, value) {
       if (_.isUndefined(value)) {
         value = modifier;
+        modifier = undefined;
       }
 
       if (modifier) {
         var criteria = this._criteria[attribute] || {};
-        criteria[normalizeModifier(modifier)] = normalizeValue(value, modifier);;
+        criteria[normalizeModifier(modifier)] = normalizeValue(value, modifier);
         this._criteria[attribute] = criteria;
       } else {
-        this._criteria[attribute] = normalizeValue(value, modifier);;
+        this._criteria[attribute] = normalizeValue(value, modifier);
       }
+
+      return this;
+    };
+
+    // Where In
+    // @param {String} attribute
+    // @param {Array} values
+    Query.prototype.whereIn = function where(attribute, values) {
+      var criteria = {};
+      criteria[attribute] = { '$in': values };
+      this._criteria = _.merge({}, criteria, this._criteria);
+
+      return this;
+    };
+
+    // Where Not
+    // @param {String} attribute
+    // @param {String} modifier
+    // @param {String|Number} value
+    Query.prototype.whereNot = function whereNot(attribute, modifier, value) {
+      if (_.isUndefined(value)) {
+        value = modifier;
+        modifier = undefined;
+      }
+
+      if (modifier) {
+        var criteria = this._criteria[attribute] || {};
+        criteria[normalizeModifier(modifier)] = normalizeValue(value, modifier);
+        this._criteria[attribute] = {
+          '$not': criteria
+        };
+      } else {
+        this._criteria[attribute] = {
+          '$ne': normalizeValue(value, modifier)
+        };
+      }
+
+      return this;
+    };
+
+    // Where Not In
+    // @param {String} attribute
+    // @param {Array} values
+    Query.prototype.whereNotIn = function where(attribute, values) {
+      var criteria = {};
+      criteria[attribute] = { '$nin': values };
+      this._criteria = _.merge({}, criteria, this._criteria);
 
       return this;
     };
@@ -302,9 +350,17 @@ module.exports = {
           var val = {};
           val[normalizeModifier(modifier)] = normalizeValue(value, modifier);
           value = val;
+          criteria[attribute] = {
+            '$not': value
+          };
+
+          // Otherwise use $ne
+        } else {
+          criteria[attribute] = {
+            '$ne': value
+          };
         }
 
-        criteria[attribute] = value;
 
         or = this._criteria['$or'] || [];
         or.push(criteria);
@@ -314,6 +370,34 @@ module.exports = {
 
       return this;
     };
+
+    // Or Where Not In
+    // @param {String} attribute
+    // @param {String} modifier
+    // @param {String|Number} value
+    Query.prototype.orWhereIn = function orWhereNotIn(attribute, values) {
+      var or;
+
+      // If passing in a nested criteria, just push it to the criteria
+      if (arguments.length === 1 && _.isPlainObject(attribute)) {
+        or = this._criteria['$or'] || [];
+        or.push(attribute);
+        this._criteria['$or'] = or;
+
+        // Otherwise build up an OR clause
+      } else {
+        var criteria = {};
+        criteria[attribute] = { '$in': values };
+
+        or = this._criteria['$or'] || [];
+        or.push(criteria);
+
+        this._criteria['$or'] = or;
+      }
+
+      return this;
+    };
+
 
     // Or Where Not In
     // @param {String} attribute
@@ -591,13 +675,14 @@ module.exports = {
     var buildGrouping = function buildGrouping(expressionGroup, query) {
       // Build a new Query object to get the nested criteria built up
       var _query = new Query();
+      _query.select('*');
 
       // Figure out what the function should be by examining the first item
       // in the expression group. If it has any modifiers or combinators, grab
       // them. We do this so we know if the grouping should be negated or not.
       // ex: orWhereNot vs orWhere
       var modifiers = checkForModifiers(_.first(expressionGroup), {
-        strip: ['NOT', 'AND']
+        strip: ['NOT']
       });
 
       // Default the fn value to `orWhere`
@@ -665,7 +750,7 @@ module.exports = {
             var second = _.first(_.pullAt(modifiers.modifier, 0));
 
             if (first === 'NOT' && second === 'IN') {
-              _fn = 'orWhereNotIn';
+              _fn = 'whereNotIn';
             }
           }
 
@@ -1161,7 +1246,7 @@ module.exports = {
       tokenParser(query, tree);
       return query.toObject();
     })(inputs.tree);
-    // console.log('MQuery', MQuery);
+
     return exits.success(MQuery);
   }
 

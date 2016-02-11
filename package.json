@@ -25,7 +25,10 @@
     "friendlyName": "mongo-query-builder",
     "machineDir": "machines/",
     "machines": [
-      "generate-query"
+      "generate-query",
+      "tokenizer",
+      "analyzer",
+      "builder"
     ]
   }
 }

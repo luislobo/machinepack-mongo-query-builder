@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Transforms RQL to mongo queries",
   "scripts": {
-    "test": "node ./node_modules/test-machinepack-mocha/bin/testmachinepack-mocha.js"
+    "test": "node ./node_modules/mocha/bin/mocha --recursive"
   },
   "keywords": [
     "mongo-query-builder",

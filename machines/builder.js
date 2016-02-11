@@ -158,10 +158,10 @@ module.exports = {
 
       if (modifier) {
         var criteria = this._criteria[attribute] || {};
-        criteria[normalizeModifier(modifier)] = value;
+        criteria[normalizeModifier(modifier)] = normalizeValue(value, modifier);;
         this._criteria[attribute] = criteria;
       } else {
-        this._criteria[attribute] = value;
+        this._criteria[attribute] = normalizeValue(value, modifier);;
       }
 
       return this;
@@ -250,23 +250,94 @@ module.exports = {
         or = this._criteria['$or'] || [];
         or.push(attribute);
         this._criteria['$or'] = or;
-        return this;
+
+        // Otherwise build up an OR clause
+      } else {
+        var criteria = {};
+        if (modifier) {
+          if (modifier !== 'like') {
+            var val = {};
+            val[normalizeModifier(modifier)] = normalizeValue(value, modifier);
+            value = val;
+
+            // Else just normalize the value
+          } else {
+            value = normalizeValue(value, modifier);
+          }
+        }
+
+        criteria[attribute] = value;
+
+        or = this._criteria['$or'] || [];
+        or.push(criteria);
+
+        this._criteria['$or'] = or;
       }
 
-      // Otherwise build up an OR clause
-      var criteria = {};
-      if (modifier) {
-        var val = {};
-        val[normalizeModifier(modifier)] = value;
-        value = val;
+      return this;
+    };
+
+    // Or Where Not
+    // @param {String} attribute
+    // @param {String} modifier
+    // @param {String|Number} value
+    Query.prototype.orWhereNot = function orWhereNot(attribute, modifier, value) {
+      var or;
+
+      if (_.isUndefined(value)) {
+        value = modifier;
+        modifier = undefined;
       }
 
-      criteria[attribute] = value;
+      // If passing in a nested criteria, just push it to the criteria
+      if (arguments.length === 1 && _.isPlainObject(attribute)) {
+        or = this._criteria['$or'] || [];
+        or.push(attribute);
+        this._criteria['$or'] = or;
 
-      or = this._criteria['$or'] || [];
-      or.push(criteria);
+        // Otherwise build up an OR clause
+      } else {
+        var criteria = {};
+        if (modifier) {
+          var val = {};
+          val[normalizeModifier(modifier)] = normalizeValue(value, modifier);
+          value = val;
+        }
 
-      this._criteria['$or'] = or;
+        criteria[attribute] = value;
+
+        or = this._criteria['$or'] || [];
+        or.push(criteria);
+
+        this._criteria['$or'] = or;
+      }
+
+      return this;
+    };
+
+    // Or Where Not In
+    // @param {String} attribute
+    // @param {String} modifier
+    // @param {String|Number} value
+    Query.prototype.orWhereNotIn = function orWhereNotIn(attribute, values) {
+      var or;
+
+      // If passing in a nested criteria, just push it to the criteria
+      if (arguments.length === 1 && _.isPlainObject(attribute)) {
+        or = this._criteria['$or'] || [];
+        or.push(attribute);
+        this._criteria['$or'] = or;
+
+        // Otherwise build up an OR clause
+      } else {
+        var criteria = {};
+        criteria[attribute] = { '$nin': values };
+
+        or = this._criteria['$or'] || [];
+        or.push(criteria);
+
+        this._criteria['$or'] = or;
+      }
 
       return this;
     };
@@ -319,6 +390,34 @@ module.exports = {
 
       return normalizedModifier;
     };
+
+
+    //  ╔╗╔╔═╗╦═╗╔╦╗╔═╗╦  ╦╔═╗╔═╗  ╦  ╦╔═╗╦  ╦ ╦╔═╗
+    //  ║║║║ ║╠╦╝║║║╠═╣║  ║╔═╝║╣   ╚╗╔╝╠═╣║  ║ ║║╣
+    //  ╝╚╝╚═╝╩╚═╩ ╩╩ ╩╩═╝╩╚═╝╚═╝   ╚╝ ╩ ╩╩═╝╚═╝╚═╝
+    //
+    // Modifies the value if needed to represent a mongo version based on either
+    // the value type or the modifier.
+    var normalizeValue = function normalizeValue(value, modifier) {
+      // Start by checking the modifier. If the modifier is a LIKE then check
+      // for any % signs in the value.
+      var val;
+
+      if (modifier === 'like') {
+        if (value.charAt(0) === '%' && value.charAt(value.length - 1) === '%') {
+          val = value.replace(/%/g, '');
+        } else if (value.charAt(0) === '%' && value.charAt(value.length - 1) !== '%') {
+          val = value.replace(/%/g, '') + '$';
+        } else if (value.charAt(0) !== '%' && value.charAt(value.length - 1) === '%') {
+          val = '^' + value.replace(/%/g, '');
+        }
+
+        value = new RegExp(val);
+      }
+
+      return value;
+    };
+
 
     //  ╦ ╦╦ ╦╔═╗╦═╗╔═╗  ╔═╗═╗ ╦╔═╗╦═╗╔═╗╔═╗╔═╗╦╔═╗╔╗╔  ╔╗ ╦ ╦╦╦  ╔╦╗╔═╗╦═╗
     //  ║║║╠═╣║╣ ╠╦╝║╣   ║╣ ╔╩╦╝╠═╝╠╦╝║╣ ╚═╗╚═╗║║ ║║║║  ╠╩╗║ ║║║   ║║║╣ ╠╦╝
@@ -899,18 +998,18 @@ module.exports = {
       }
 
       // NOT Modifier
-      // if (expr.type === 'CONDITION' && expr.value === 'NOT') {
-      //   options.modifier = options.modifier || [];
-      //   options.modifier.push(expr.value);
-      //   return;
-      // }
+      if (expr.type === 'CONDITION' && expr.value === 'NOT') {
+        options.modifier = options.modifier || [];
+        options.modifier.push(expr.value);
+        return;
+      }
 
       // IN Modifier
-      // if (expr.type === 'CONDITION' && expr.value === 'IN') {
-      //   options.modifier = options.modifier || [];
-      //   options.modifier.push(expr.value);
-      //   return;
-      // }
+      if (expr.type === 'CONDITION' && expr.value === 'IN') {
+        options.modifier = options.modifier || [];
+        options.modifier.push(expr.value);
+        return;
+      }
 
       // Handle sets of values being inserted
       if (options.identifier === 'INSERT' && (expr.type === 'KEY' || expr.type === 'VALUE')) {

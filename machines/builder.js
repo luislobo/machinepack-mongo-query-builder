@@ -879,13 +879,12 @@ module.exports = {
         return expressionGroup;
       }
 
-      // Now the Knex functions need to be called. We can examine the group and
-      // if there is only a single item, go ahead and just build a normal Knex
-      // grouping query.
+      // We can examine the group and if there is only a single item, go ahead
+      // and just build a normal grouping query.
       // ex. query().orWhere([name, 'foo'])
       //
-      // If there are multiple items in the set, we need to create a knex grouping
-      // function.
+      // If there are multiple items in the set, we need to process them
+      // individualy.
       if (expressionGroup.length === 1) {
         // Check for any modifiers added to the beginning of the expression.
         // These represent things like NOT. Pull the value from the expression.
@@ -1129,7 +1128,7 @@ module.exports = {
       //   return;
       // }
 
-      // Process value and use the appropriate Knex function
+      // Process value and use the appropriate query function
       if (expr.type === 'VALUE') {
         processValue(expr, idx, options);
         return;

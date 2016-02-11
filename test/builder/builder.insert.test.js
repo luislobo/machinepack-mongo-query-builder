@@ -20,11 +20,10 @@ describe('Builder ::', function() {
         assert.deepEqual(result, {
           collection: 'books',
           fn: 'insert',
-          fields: {},
-          options: {
+          values: {
             title: 'Slaughterhouse Five'
           },
-          criteria: {}
+          options: {}
         });
 
         return done();
@@ -48,12 +47,11 @@ describe('Builder ::', function() {
         assert.deepEqual(result, {
           collection: 'books',
           fn: 'insert',
-          fields: {},
-          options: {
+          values: {
             title: 'Slaughterhouse Five',
             author: 'Kurt Vonnegut'
           },
-          criteria: {}
+          options: {}
         });
 
         return done();

@@ -20,7 +20,6 @@ describe('Builder ::', function() {
         assert.deepEqual(result, {
           collection: 'customers',
           fn: 'distinct',
-          fields: {},
           options: {
             val: 'firstName'
           },
@@ -47,7 +46,6 @@ describe('Builder ::', function() {
         assert.deepEqual(result, {
           collection: 'customers',
           fn: 'aggregate',
-          fields: {},
           options: {
             val: [
               {

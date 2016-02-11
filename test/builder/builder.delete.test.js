@@ -21,7 +21,6 @@ describe('Builder ::', function() {
         assert.deepEqual(result, {
           collection: 'accounts',
           fn: 'remove',
-          fields: {},
           options: {},
           criteria: {
             activated: false

@@ -50,6 +50,7 @@ module.exports = {
       this._fn = '';
       this._criteria = {};
       this._options = {};
+      this._values = {};
       this._fields = {};
       return this;
     };
@@ -59,11 +60,25 @@ module.exports = {
     Query.prototype.toObject = function toObject() {
       var query = {
         collection: this._collection,
-        criteria: this._criteria,
         options: this._options,
-        fields: this._fields,
         fn: this._fn
       };
+
+      if (_.indexOf(['find', 'count', 'distinct', 'aggregate', 'update', 'remove'], this._fn) > -1) {
+        query.criteria = this._criteria;
+      }
+
+      if (_.indexOf(['find', 'count'], this._fn) > -1) {
+        query.fields = this._fields;
+      }
+
+      if (this._fn === 'update') {
+        query.update = { '$set': this._values };
+      }
+
+      if (this._fn === 'insert') {
+        query.values = this._values;
+      }
 
       return query;
     };
@@ -121,7 +136,16 @@ module.exports = {
     // @param {Dictionary} values
     Query.prototype.insert = function insert(values) {
       this._fn = 'insert';
-      this._options = _.merge({}, this._options, values);
+      this._values = _.merge({}, this._options, values);
+      return this;
+    };
+
+    // Update
+    // @param {Dictionary} values
+    Query.prototype.update = function update(values) {
+      this._fn = 'update';
+      this._values = _.merge({}, this._update, values);
+      this._options.multi = true;
       return this;
     };
 
@@ -132,10 +156,10 @@ module.exports = {
         value = modifier;
       }
 
-      // TODO: normalize modifier
       if (modifier) {
         var criteria = this._criteria[attribute] || {};
-        criteria[modifier] = value;
+        criteria[normalizeModifier(modifier)] = value;
+        this._criteria[attribute] = criteria;
       } else {
         this._criteria[attribute] = value;
       }
@@ -188,6 +212,26 @@ module.exports = {
       return this;
     };
 
+    // Sort
+    // @param {}
+    Query.prototype.sort = function sort(attribute, direction) {
+      var sort = this._options.sort || {};
+
+      // Normalize the direction to ensure it's always in the proper format
+      if (direction === 'asc' || direction === 1) {
+        direction = 1;
+      } else if (direction === 'desc' || direction === -1) {
+        direction = -1;
+      } else {
+        throw new Error('Syntax Error: Sort must use either asc or desc for direction');
+      }
+
+      sort[attribute] = direction;
+      this._options.sort = sort;
+
+      return this;
+    };
+
 
     //  ██████╗ ██╗   ██╗██╗██╗     ██████╗ ███████╗██████╗
     //  ██╔══██╗██║   ██║██║██║     ██╔══██╗██╔════╝██╔══██╗
@@ -213,6 +257,29 @@ module.exports = {
       query[fn].apply(query, expression);
     };
 
+
+    //  ╔╗╔╔═╗╦═╗╔╦╗╔═╗╦  ╦╔═╗╔═╗  ╔╦╗╔═╗╔╦╗╦╔═╗╦╔═╗╦═╗
+    //  ║║║║ ║╠╦╝║║║╠═╣║  ║╔═╝║╣   ║║║║ ║ ║║║╠╣ ║║╣ ╠╦╝
+    //  ╝╚╝╚═╝╩╚═╩ ╩╩ ╩╩═╝╩╚═╝╚═╝  ╩ ╩╚═╝═╩╝╩╚  ╩╚═╝╩╚═
+    //
+    // Changes RQL expression modifiers into Mongo modifiers
+    var normalizeModifier = function normalizeModifier(modifier) {
+      var map = {
+        '>': '$gt',
+        '>=': '$gte',
+        '<': '$lt',
+        '<=': '$lte',
+        '<>': '$ne'
+      };
+
+      var normalizedModifier = modifier;
+
+      if (map[modifier]) {
+        normalizedModifier = map[modifier];
+      }
+
+      return normalizedModifier;
+    };
 
     //  ╦ ╦╦ ╦╔═╗╦═╗╔═╗  ╔═╗═╗ ╦╔═╗╦═╗╔═╗╔═╗╔═╗╦╔═╗╔╗╔  ╔╗ ╦ ╦╦╦  ╔╦╗╔═╗╦═╗
     //  ║║║╠═╣║╣ ╠╦╝║╣   ║╣ ╔╩╦╝╠═╝╠╦╝║╣ ╚═╗╚═╗║║ ║║║║  ╠╩╗║ ║║║   ║║║╣ ╠╦╝
@@ -249,6 +316,58 @@ module.exports = {
     //
     // Builds an array of KEY/VALUE pairs to use as the insert clause.
     var insertBuilder = function insertBuilder(expr, expression) {
+      var arr = [];
+
+      // Handle KEY/VALUE pairs
+      if (expr.type === 'KEY') {
+        arr.push(expr.value);
+        expression.push(arr);
+
+        return expression;
+      }
+
+      // Set the VALUE pair
+      if (expr.type === 'VALUE') {
+        arr = _.last(expression);
+        arr.push(expr.value);
+
+        return expression;
+      }
+    };
+
+
+    //  ╔═╗╦═╗╔╦╗╔═╗╦═╗  ╔╗ ╦ ╦  ╔╗ ╦ ╦╦╦  ╔╦╗╔═╗╦═╗
+    //  ║ ║╠╦╝ ║║║╣ ╠╦╝  ╠╩╗╚╦╝  ╠╩╗║ ║║║   ║║║╣ ╠╦╝
+    //  ╚═╝╩╚══╩╝╚═╝╩╚═  ╚═╝ ╩   ╚═╝╚═╝╩╩═╝═╩╝╚═╝╩╚═
+    //
+    // Process ORDER BY expressions
+    var orderByBuilder = function orderByBuilder(expr, expression) {
+      var arr = [];
+
+      // Handle KEY/VALUE pairs
+      if (expr.type === 'KEY') {
+        arr.push(expr.value);
+        expression.push(arr);
+
+        return expression;
+      }
+
+      // Set the VALUE pair
+      if (expr.type === 'VALUE') {
+        arr = _.last(expression);
+        arr.push(expr.value);
+
+        return expression;
+      }
+    };
+
+
+    //  ╦ ╦╔═╗╔╦╗╔═╗╔╦╗╔═╗  ╔╗ ╦ ╦╦╦  ╔╦╗╔═╗╦═╗
+    //  ║ ║╠═╝ ║║╠═╣ ║ ║╣   ╠╩╗║ ║║║   ║║║╣ ╠╦╝
+    //  ╚═╝╩  ═╩╝╩ ╩ ╩ ╚═╝  ╚═╝╚═╝╩╩═╝═╩╝╚═╝╩╚═
+    //
+    // Builds an array of KEY/VALUE pairs to use as the update clause
+    var updateBuilder = function updateBuilder(expr, expression) {
       var arr = [];
 
       // Handle KEY/VALUE pairs
@@ -317,20 +436,19 @@ module.exports = {
         case 'OFFSET':
           buildQueryPiece('skip', expr.value, options.query);
           break;
-        //
-        // case 'ORDERBY':
-        //
-        //   // Look ahead and see if the next expression is an Identifier.
-        //   // If so or if there is no next identifier, add the insert statments.
-        //   options.nextExpr = undefined;
-        //   options.nextExpr = options.tokenGroup[idx + 1];
-        //   if (!options.nextExpr || options.nextExpr.type === 'IDENTIFIER') {
-        //     _.each(options.expression, function processOrderBy(ordering) {
-        //       buildQueryPiece('orderBy', ordering, options.query);
-        //     });
-        //   }
-        //   break;
-        //
+
+        case 'ORDERBY':
+          // Look ahead and see if the next expression is an Identifier.
+          // If so or if there is no next identifier, add the order by statments.
+          options.nextExpr = undefined;
+          options.nextExpr = options.tokenGroup[idx + 1];
+          if (!options.nextExpr || options.nextExpr.type === 'IDENTIFIER') {
+            _.each(options.expression, function processOrderBy(ordering) {
+              buildQueryPiece('sort', ordering, options.query);
+            });
+          }
+          break;
+
         case 'INSERT':
           // Look ahead and see if the next expression is an Identifier.
           // If so or if there is no next identifier, add the insert statments.
@@ -342,23 +460,19 @@ module.exports = {
             buildQueryPiece('insert', options.expression, options.query);
           }
           break;
-        //
-        // case 'UPDATE':
-        //
-        //   // Look ahead and see if the next expression is an Identifier.
-        //   // If so or if there is no next identifier, add the update statments.
-        //   options.nextExpr = undefined;
-        //   options.nextExpr = options.tokenGroup[idx + 1];
-        //   if (!options.nextExpr || options.nextExpr.type === 'IDENTIFIER') {
-        //     // Flatten the expression
-        //     options.expression = _.fromPairs(options.expression);
-        //     buildQueryPiece('update', options.expression, options.query);
-        //
-        //     // Also add a 'returning' value
-        //     buildQueryPiece('returning', 'id', options.query);
-        //   }
-        //   break;
-        //
+
+        case 'UPDATE':
+          // Look ahead and see if the next expression is an Identifier.
+          // If so or if there is no next identifier, add the update statments.
+          options.nextExpr = undefined;
+          options.nextExpr = options.tokenGroup[idx + 1];
+          if (!options.nextExpr || options.nextExpr.type === 'IDENTIFIER') {
+            // Flatten the expression
+            options.expression = _.fromPairs(options.expression);
+            buildQueryPiece('update', options.expression, options.query);
+          }
+          break;
+
         case 'WHERE':
 
           // Check the modifier to see if a different function other than
@@ -447,9 +561,9 @@ module.exports = {
       }
 
       // Handle sets of values being update
-      // if (options.identifier === 'UPDATE' && (expr.type === 'KEY' || expr.type === 'VALUE')) {
-      //   options.expression = updateBuilder(expr, options.expression, options.query);
-      // }
+      if (options.identifier === 'UPDATE' && (expr.type === 'KEY' || expr.type === 'VALUE')) {
+        options.expression = updateBuilder(expr, options.expression, options.query);
+      }
 
       // Handle clauses in the WHERE value
       if (options.identifier === 'WHERE' && (expr.type === 'KEY' || expr.type === 'OPERATOR' || expr.type === 'VALUE')) {
@@ -457,9 +571,9 @@ module.exports = {
       }
 
       // Handle ORDER BY statements
-      // if (options.identifier === 'ORDERBY' && (expr.type === 'KEY' || expr.type === 'VALUE')) {
-      //   options.expression = orderByBuilder(expr, options.expression, options.query);
-      // }
+      if (options.identifier === 'ORDERBY' && (expr.type === 'KEY' || expr.type === 'VALUE')) {
+        options.expression = orderByBuilder(expr, options.expression, options.query);
+      }
 
       // Handle AS statements
       // if (options.identifier === 'AS' && expr.type === 'VALUE') {

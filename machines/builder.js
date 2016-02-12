@@ -246,6 +246,41 @@ module.exports = {
       return this;
     };
 
+    // Group By
+    Query.prototype.groupBy = function groupBy() {
+      this._fn = 'aggregate';
+
+      var values = _.map(arguments);
+      var condition = {};
+
+      // If there is only a single group, set it on the ID
+      if (values.length === 1) {
+        this._options = {
+          val: {
+            '$group': {
+              '_id': '$' + _.first(values)
+            }
+          }
+        };
+
+        // Otherwise make the group a dictionary
+      } else {
+        _.each(values, function buildAggregateCondition(attr) {
+          condition[attr] = '$' + attr;
+        });
+
+        this._options = {
+          val: {
+            '$group': {
+              '_id': condition
+            }
+          }
+        };
+      }
+
+      return this;
+    };
+
     // Limit
     // @param {Number} count
     Query.prototype.limit = function limit(count) {
@@ -964,12 +999,11 @@ module.exports = {
             buildQueryPiece(options.identifier.toLowerCase(), val, options.query);
           });
           break;
-        //
-        // case 'GROUPBY':
-        //   buildQueryPiece('groupBy', expr.value, options.query);
-        //   break;
-        //
-        //
+
+        case 'GROUPBY':
+          buildQueryPiece('groupBy', expr.value, options.query);
+          break;
+
         case 'LIMIT':
           buildQueryPiece('limit', expr.value, options.query);
           break;

@@ -1155,24 +1155,11 @@ module.exports = {
       //   return;
       // }
 
-      // Handle UNION statements
-      // if (expr.type === 'UNION') {
-      //   options.union = true;
-      //   options.unionType = expr.value;
-      //   return;
-      // }
-
       // Process value and use the appropriate query function
       if (expr.type === 'VALUE') {
         processValue(expr, idx, options);
         return;
       }
-
-      // Handle SUBQUERY keys
-      // if (expr.type === 'SUBQUERY') {
-      //   options.subQuery = true;
-      //   return;
-      // }
 
       //  ╔═╗╦═╗╔═╗╦ ╦╔═╗╦╔╗╔╔═╗
       //  ║ ╦╠╦╝║ ║║ ║╠═╝║║║║║ ╦
@@ -1192,49 +1179,12 @@ module.exports = {
           'RIGHTOUTERJOIN',
           'FULLOUTERJOIN'
         ];
-      //
-      //   // If the expression is an array of UNION subqueries, process each
-      //   // one and toggle the UNION flag.
-      //   if (options.union) {
-      //     processUnion(expr, options.query, options.unionType);
-      //     options.union = false;
-      //     options.unionType = undefined;
-      //     return;
-      //   }
-      //
-      //   // If the expression is a subQuery then process it standalone query
-      //   // and pass it in as the expression value
-      //   if (options.subQuery) {
-      //     // Build a standalone knex query builder and pass it the expression
-      //     var subQueryBuilder = knex.queryBuilder();
-      //     tokenParser(subQueryBuilder, expr);
-      //
-      //     // Toggle off the subquery flag
-      //     options.subQuery = false;
-      //
-      //     // Build the query using the subquery object as the value
-      //     if (options.identifier === 'WHERE') {
-      //       options.expression.push(subQueryBuilder);
-      //
-      //       // If not a WHERE clause, just stick the subquery on the value
-      //     } else {
-      //       expr.value = subQueryBuilder;
-      //     }
-      //
-      //     // Process the value
-      //     processValue(expr, idx, options);
-      //
-      //     return;
-      //   }
-      //
+
         var isJoin = _.indexOf(joinTypes, options.identifier);
         if (isJoin === -1) {
           processGroup(expr, false, options.expression, undefined, options.query);
           return;
         }
-      //
-      //   // Otherwise process the array of join logic
-      //   processJoinGroup(expr, options.identifier, options.query);
       }
     };
 

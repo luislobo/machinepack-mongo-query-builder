@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "description": "Transforms RQL to mongo queries",
   "scripts": {
-    "test": "node ./node_modules/mocha/bin/mocha --recursive"
+    "test": "node ./node_modules/mocha/bin/mocha --recursive",
+    "fasttest": "node ./node_modules/mocha/bin/mocha --recursive",
+    "pretest": "npm run lint",
+    "lint": "eslint machines test"
   },
   "keywords": [
     "mongo-query-builder",

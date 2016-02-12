@@ -30,6 +30,16 @@ module.exports = {
       variableName: 'result',
       description: 'The generated Mongo statement.',
       example: {}
+    },
+
+    error: {
+      variableName: 'error',
+      description: 'An unexpected error occured.'
+    },
+
+    malformed: {
+      variableName: 'malformed',
+      description: 'Query could not be parsed due to malformed syntax.'
     }
 
   },

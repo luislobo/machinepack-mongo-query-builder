@@ -14,7 +14,8 @@
   "license": "MIT",
   "dependencies": {
     "lodash": "4.3.0",
-    "machine": "10.4.0"
+    "machine": "10.4.0",
+    "machinepack-waterline-query-parser": "particlebanana/machinepack-waterline-query-parser"
   },
   "devDependencies": {
     "eslint": "1.10.3",
@@ -25,10 +26,8 @@
     "friendlyName": "mongo-query-builder",
     "machineDir": "machines/",
     "machines": [
-      "generate-query",
-      "tokenizer",
-      "analyzer",
-      "builder"
+      "builder",
+      "generate-query"
     ]
   }
 }

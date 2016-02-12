@@ -3,8 +3,8 @@
  * For use with Builder tests.
  */
 
-var Tokenizer = require('../../index').tokenizer;
-var Analyzer = require('../../index').analyzer;
+var Tokenizer = require('machinepack-waterline-query-parser').tokenizer;
+var Analyzer = require('machinepack-waterline-query-parser').analyzer;
 
 module.exports = function(expression) {
   var tokens = Tokenizer({

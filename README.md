@@ -1,5 +1,7 @@
 # Mongo Query Builder
 
+[![Build Status](https://travis-ci.org/particlebanana/machinepack-mongo-query-builder.svg?branch=master)](https://travis-ci.org/particlebanana/machinepack-mongo-query-builder)
+
 A helper for building MongoDB queries from RQL syntax.
 
 ### Notes:

@@ -21,26 +21,29 @@ describe('Builder ::', function() {
       .exec(function(err, result) {
         assert(!err);
         assert.deepEqual(result, {
-          collection: 'books',
-          fn: 'update',
-          update: {
-            '$set': {
-              status: 'archived'
+          update: 'books',
+          updates: [
+            {
+              q: {
+                publishedDate: {
+                  '$gt': 2000
+                }
+              },
+              u: {
+                '$set': {
+                  status: 'archived'
+                }
+              },
+              multi: true
             }
-          },
-          options: {
-            multi: true
-          },
-          criteria: {
-            publishedDate: { '$gt': 2000 }
-          }
+          ]
         });
 
         return done();
       });
     });
 
-    it('should generate a query with multiple values being inserted', function(done) {
+    it('should generate a query with multiple values being updated', function(done) {
       var tree = analyze({
         update: {
           status: 'archived',
@@ -58,20 +61,23 @@ describe('Builder ::', function() {
       .exec(function(err, result) {
         assert(!err, err);
         assert.deepEqual(result, {
-          collection: 'books',
-          fn: 'update',
-          update: {
-            '$set': {
-              status: 'archived',
-              active: false
+          update: 'books',
+          updates: [
+            {
+              q: {
+                publishedDate: {
+                  '$gt': 2000
+                }
+              },
+              u: {
+                '$set': {
+                  status: 'archived',
+                  active: false
+                }
+              },
+              multi: true
             }
-          },
-          options: {
-            multi: true
-          },
-          criteria: {
-            publishedDate: { '$gt': 2000 }
-          }
+          ]
         });
 
         return done();
@@ -92,17 +98,18 @@ describe('Builder ::', function() {
       .exec(function(err, result) {
         assert(!err, err);
         assert.deepEqual(result, {
-          collection: 'books',
-          fn: 'update',
-          update: {
-            '$set': {
-              status: null
+          update: 'books',
+          updates: [
+            {
+              q: {},
+              u: {
+                '$set': {
+                  status: null
+                }
+              },
+              multi: true
             }
-          },
-          options: {
-            multi: true
-          },
-          criteria: {}
+          ]
         });
 
         return done();

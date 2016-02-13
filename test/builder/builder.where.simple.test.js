@@ -20,16 +20,17 @@ describe('Builder ::', function() {
       .exec(function(err, result) {
         assert(!err);
         assert.deepEqual(result, {
-          collection: 'users',
-          fn: 'find',
-          criteria: {
+          find: 'users',
+          filter: {
             firstName: 'Test',
             lastName: 'User'
           },
-          fields: {
+          sort: {},
+          projection: {
             id: 1
           },
-          options: {}
+          skip: 0,
+          limit: 0
         });
 
         return done();
@@ -51,15 +52,16 @@ describe('Builder ::', function() {
       .exec(function(err, result) {
         assert(!err);
         assert.deepEqual(result, {
-          collection: 'users',
-          fn: 'find',
-          criteria: {
+          find: 'users',
+          filter: {
             votes: {
               '$gt': 100
             }
           },
-          fields: {},
-          options: {}
+          sort: {},
+          projection: {},
+          skip: 0,
+          limit: 0
         });
 
         return done();
@@ -84,16 +86,17 @@ describe('Builder ::', function() {
       .exec(function(err, result) {
         assert(!err);
         assert.deepEqual(result, {
-          collection: 'users',
-          fn: 'find',
-          criteria: {
+          find: 'users',
+          filter: {
             votes: {
               '$gt': 100,
               '$lt': 200
             }
           },
-          fields: {},
-          options: {}
+          sort: {},
+          projection: {},
+          skip: 0,
+          limit: 0
         });
 
         return done();
@@ -116,9 +119,8 @@ describe('Builder ::', function() {
       .exec(function(err, result) {
         assert(!err);
         assert.deepEqual(result, {
-          collection: 'users',
-          fn: 'find',
-          criteria: {
+          find: 'users',
+          filter: {
             votes: {
               '$gt': 100
             },
@@ -126,8 +128,10 @@ describe('Builder ::', function() {
               '$lt': 50
             }
           },
-          fields: {},
-          options: {}
+          sort: {},
+          projection: {},
+          skip: 0,
+          limit: 0
         });
 
         return done();

@@ -17,16 +17,15 @@ describe('Builder ::', function() {
       .exec(function(err, result) {
         assert(!err);
         assert.deepEqual(result, {
-          collection: 'users',
-          fn: 'find',
-          fields: {},
-          options: {
-            sort: {
-              name: -1,
-              age: 1
-            }
+          find: 'users',
+          filter: {},
+          sort: {
+            name: -1,
+            age: 1
           },
-          criteria: {}
+          projection: {},
+          skip: 0,
+          limit: 0
         });
 
         return done();

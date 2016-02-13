@@ -32,9 +32,8 @@ describe('Builder ::', function() {
       .exec(function(err, result) {
         assert(!err);
         assert.deepEqual(result, {
-          collection: 'users',
-          fn: 'find',
-          criteria: {
+          find: 'users',
+          filter: {
             '$or': [
               {
                 name: /Test/
@@ -46,8 +45,10 @@ describe('Builder ::', function() {
               }
             ]
           },
-          options: {},
-          fields: {}
+          sort: {},
+          projection: {},
+          skip: 0,
+          limit: 0
         });
 
         return done();

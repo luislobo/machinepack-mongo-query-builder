@@ -18,12 +18,9 @@ describe('Builder ::', function() {
       .exec(function(err, result) {
         assert(!err);
         assert.deepEqual(result, {
-          collection: 'customers',
-          fn: 'distinct',
-          options: {
-            val: 'firstName'
-          },
-          criteria: {}
+          distinct: 'customers',
+          key: 'firstName',
+          query: {}
         });
 
         return done();
@@ -44,21 +41,17 @@ describe('Builder ::', function() {
       .exec(function(err, result) {
         assert(!err);
         assert.deepEqual(result, {
-          collection: 'customers',
-          fn: 'aggregate',
-          options: {
-            val: [
-              {
-                '$group': {
-                  '_id': {
-                    firstName: '$firstName',
-                    lastName: '$lastName'
-                  }
+          aggregate: 'customers',
+          pipeline: [
+            {
+              '$group': {
+                '_id': {
+                  firstName: '$firstName',
+                  lastName: '$lastName'
                 }
               }
-            ]
-          },
-          criteria: {}
+            }
+          ]
         });
 
         return done();

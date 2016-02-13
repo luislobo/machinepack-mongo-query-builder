@@ -19,12 +19,45 @@ describe('Builder ::', function() {
       .exec(function(err, result) {
         assert(!err);
         assert.deepEqual(result, {
-          collection: 'accounts',
-          fn: 'remove',
-          options: {},
-          criteria: {
-            activated: false
-          }
+          delete: 'accounts',
+          deletes: [
+            {
+              q: {
+                activated: false
+              }
+            }
+          ]
+        });
+
+        return done();
+      });
+    });
+
+    it('should generate a simple query with an DELETE statement when a limit is used', function(done) {
+      var tree = analyze({
+        del: true,
+        from: 'accounts',
+        where: {
+          activated: false
+        },
+        limit: 4
+      });
+
+      Builder({
+        tree: tree
+      })
+      .exec(function(err, result) {
+        assert(!err);
+        assert.deepEqual(result, {
+          delete: 'accounts',
+          deletes: [
+            {
+              q: {
+                activated: false,
+                limit: 4
+              }
+            }
+          ]
         });
 
         return done();

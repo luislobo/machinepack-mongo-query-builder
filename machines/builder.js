@@ -48,36 +48,112 @@ module.exports = {
     var Query = function Query() {
       this._collection = '';
       this._fn = '';
-      this._criteria = {};
-      this._options = {};
+      this._key = '';
+      this._filter = {};
+      this._sort = {};
+      this._projection = {};
       this._values = {};
-      this._fields = {};
+      this._pipeline = [];
+      this._pipelineGrouping = [];
+      this._skip = 0;
+      this._limit = 0;
+
+      this._options = {};
       return this;
     };
 
     // Construct a Query object
     // @return {this}
     Query.prototype.toObject = function toObject() {
-      var query = {
-        collection: this._collection,
-        options: this._options,
-        fn: this._fn
-      };
+      var query = {};
 
-      if (_.indexOf(['find', 'count', 'distinct', 'aggregate', 'update', 'remove'], this._fn) > -1) {
-        query.criteria = this._criteria;
+      // Find Queries
+      if (this._fn === 'find') {
+        query.find = this._collection;
+        query.filter = this._filter;
+        query.sort = this._sort;
+        query.projection = this._projection;
+        query.skip = this._skip;
+        query.limit = this._limit;
       }
 
-      if (_.indexOf(['find', 'count'], this._fn) > -1) {
-        query.fields = this._fields;
+      // Distinct
+      if (this._fn === 'distinct') {
+        query.distinct = this._collection;
+        query.key = this._key;
+        query.query = this._filter;
       }
 
-      if (this._fn === 'update') {
-        query.update = { '$set': this._values };
+      // Aggregates
+      if (this._fn === 'aggregate') {
+        query.aggregate = this._collection;
+        query.pipeline = this._pipeline;
       }
 
+      // Count
+      if (this._fn === 'count') {
+        query.aggregate = this._collection;
+        query.pipeline = [];
+
+        // Build up the pipeline grouping
+        var group = {};
+        if (this._pipelineGrouping.length > 1) {
+          var pipelineGrouping = {};
+          _.each(this._pipelineGrouping, function buildGroup(attr) {
+            pipelineGrouping[attr] = '$' + attr;
+          });
+          group._id = pipelineGrouping;
+
+          // otherwise just set the _id field to the first grouping item
+        } else {
+          group._id = '$' + _.first(this._pipelineGrouping);
+        }
+
+        if (_.keys(this._filter).length) {
+          query.pipeline.push({ '$match': this._filter });
+        }
+
+        // Add the SUM value
+        group.count = { '$sum': 1 };
+
+        // Add the grouping to the pipeline
+        query.pipeline.push({ '$group': group });
+      }
+
+      // Insert
       if (this._fn === 'insert') {
-        query.values = this._values;
+        query.insert = this._collection;
+        query.documents = [this._values];
+      }
+
+      // Update
+      if (this._fn === 'update') {
+        query.update = this._collection;
+        query.updates = [];
+
+        var update = {
+          q: this._filter,
+          u: { '$set': this._values },
+          multi: true
+        };
+
+        query.updates.push(update);
+      }
+
+      // Delete
+      if (this._fn === 'remove') {
+        query.delete = this._collection;
+        query.deletes = [];
+
+        var del = {
+          q: this._filter
+        };
+
+        if (this._limit) {
+          del.q.limit = this._limit;
+        }
+
+        query.deletes.push(del);
       }
 
       return query;
@@ -101,7 +177,7 @@ module.exports = {
       }
 
       _.each(fields, function setField(field) {
-        self._fields[field] = 1;
+        self._projection[field] = 1;
       });
 
       return this;
@@ -118,11 +194,7 @@ module.exports = {
     // @param {String} attributeNames
     Query.prototype.count = function count(attributeName) {
       this._fn = 'count';
-
-      var criteria = this._criteria[attributeName] || {};
-      criteria['$exists'] = true;
-      this._criteria[attributeName] = criteria;
-
+      this._pipelineGrouping.push(attributeName);
       return this;
     };
 
@@ -136,7 +208,7 @@ module.exports = {
     // @param {Dictionary} values
     Query.prototype.insert = function insert(values) {
       this._fn = 'insert';
-      this._values = _.merge({}, this._options, values);
+      this._values = _.merge({}, this._values, values);
       return this;
     };
 
@@ -144,8 +216,7 @@ module.exports = {
     // @param {Dictionary} values
     Query.prototype.update = function update(values) {
       this._fn = 'update';
-      this._values = _.merge({}, this._update, values);
-      this._options.multi = true;
+      this._values = _.merge({}, this._values, values);
       return this;
     };
 
@@ -158,11 +229,11 @@ module.exports = {
       }
 
       if (modifier) {
-        var criteria = this._criteria[attribute] || {};
-        criteria[normalizeModifier(modifier)] = normalizeValue(value, modifier);
-        this._criteria[attribute] = criteria;
+        var filter = this._filter[attribute] || {};
+        filter[normalizeModifier(modifier)] = normalizeValue(value, modifier);
+        this._filter[attribute] = filter;
       } else {
-        this._criteria[attribute] = normalizeValue(value, modifier);
+        this._filter[attribute] = normalizeValue(value, modifier);
       }
 
       return this;
@@ -172,9 +243,9 @@ module.exports = {
     // @param {String} attribute
     // @param {Array} values
     Query.prototype.whereIn = function where(attribute, values) {
-      var criteria = {};
-      criteria[attribute] = { '$in': values };
-      this._criteria = _.merge({}, criteria, this._criteria);
+      var filter = {};
+      filter[attribute] = { '$in': values };
+      this._filter = _.merge({}, filter, this._filter);
 
       return this;
     };
@@ -190,13 +261,13 @@ module.exports = {
       }
 
       if (modifier) {
-        var criteria = this._criteria[attribute] || {};
-        criteria[normalizeModifier(modifier)] = normalizeValue(value, modifier);
-        this._criteria[attribute] = {
-          '$not': criteria
+        var filter = this._filter[attribute] || {};
+        filter[normalizeModifier(modifier)] = normalizeValue(value, modifier);
+        this._filter[attribute] = {
+          '$not': filter
         };
       } else {
-        this._criteria[attribute] = {
+        this._filter[attribute] = {
           '$ne': normalizeValue(value, modifier)
         };
       }
@@ -208,14 +279,14 @@ module.exports = {
     // @param {String} attribute
     // @param {Array} values
     Query.prototype.whereNotIn = function where(attribute, values) {
-      var criteria = {};
-      criteria[attribute] = { '$nin': values };
-      this._criteria = _.merge({}, criteria, this._criteria);
+      var filter = {};
+      filter[attribute] = { '$nin': values };
+      this._filter = _.merge({}, filter, this._filter);
 
       return this;
     };
 
-    // Distinct
+    // Distinct Aggregation
     Query.prototype.distinct = function distinct() {
       var values = _.map(arguments);
 
@@ -223,9 +294,7 @@ module.exports = {
       // be used.
       if (values.length === 1) {
         this._fn = 'distinct';
-        this._options = {
-          val: _.first(values)
-        };
+        this._key = _.first(values);
 
         // Otherwise, an aggregation must be done
       } else {
@@ -236,17 +305,15 @@ module.exports = {
           condition[attr] = '$' + attr;
         });
 
-        this._options = {
-          val: [
-            { '$group': { '_id': condition } }
-          ]
-        };
+        this._pipeline = [
+          { '$group': { '_id': condition } }
+        ];
       }
 
       return this;
     };
 
-    // Group By
+    // Group By Aggregation
     Query.prototype.groupBy = function groupBy() {
       this._fn = 'aggregate';
 
@@ -284,14 +351,14 @@ module.exports = {
     // Limit
     // @param {Number} count
     Query.prototype.limit = function limit(count) {
-      this._options.limit = count;
+      this._limit = count;
       return this;
     };
 
     // Skip
     // @param {Number} count
     Query.prototype.skip = function limit(count) {
-      this._options.skip = count;
+      this._skip = count;
       return this;
     };
 
@@ -299,7 +366,7 @@ module.exports = {
     // @param {String} attribute
     // @param {String} direction
     Query.prototype.sort = function sort(attribute, direction) {
-      var sort = this._options.sort || {};
+      var sort = this._sort || {};
 
       // Normalize the direction to ensure it's always in the proper format
       if (direction === 'asc' || direction === 1) {
@@ -311,7 +378,7 @@ module.exports = {
       }
 
       sort[attribute] = direction;
-      this._options.sort = sort;
+      this._sort = sort;
 
       return this;
     };
@@ -330,13 +397,13 @@ module.exports = {
 
       // If passing in a nested criteria, just push it to the criteria
       if (arguments.length === 1 && _.isPlainObject(attribute)) {
-        or = this._criteria['$or'] || [];
+        or = this._filter['$or'] || [];
         or.push(attribute);
-        this._criteria['$or'] = or;
+        this._filter['$or'] = or;
 
         // Otherwise build up an OR clause
       } else {
-        var criteria = {};
+        var filter = {};
         if (modifier) {
           if (modifier !== 'like') {
             var val = {};
@@ -349,12 +416,12 @@ module.exports = {
           }
         }
 
-        criteria[attribute] = value;
+        filter[attribute] = value;
 
-        or = this._criteria['$or'] || [];
-        or.push(criteria);
+        or = this._filter['$or'] || [];
+        or.push(filter);
 
-        this._criteria['$or'] = or;
+        this._filter['$or'] = or;
       }
 
       return this;
@@ -374,33 +441,33 @@ module.exports = {
 
       // If passing in a nested criteria, just push it to the criteria
       if (arguments.length === 1 && _.isPlainObject(attribute)) {
-        or = this._criteria['$or'] || [];
+        or = this._filter['$or'] || [];
         or.push(attribute);
-        this._criteria['$or'] = or;
+        this._filter['$or'] = or;
 
         // Otherwise build up an OR clause
       } else {
-        var criteria = {};
+        var filter = {};
         if (modifier) {
           var val = {};
           val[normalizeModifier(modifier)] = normalizeValue(value, modifier);
           value = val;
-          criteria[attribute] = {
+          filter[attribute] = {
             '$not': value
           };
 
           // Otherwise use $ne
         } else {
-          criteria[attribute] = {
+          filter[attribute] = {
             '$ne': value
           };
         }
 
 
-        or = this._criteria['$or'] || [];
-        or.push(criteria);
+        or = this._filter['$or'] || [];
+        or.push(filter);
 
-        this._criteria['$or'] = or;
+        this._filter['$or'] = or;
       }
 
       return this;
@@ -415,19 +482,19 @@ module.exports = {
 
       // If passing in a nested criteria, just push it to the criteria
       if (arguments.length === 1 && _.isPlainObject(attribute)) {
-        or = this._criteria['$or'] || [];
+        or = this._filter['$or'] || [];
         or.push(attribute);
-        this._criteria['$or'] = or;
+        this._filter['$or'] = or;
 
         // Otherwise build up an OR clause
       } else {
-        var criteria = {};
-        criteria[attribute] = { '$in': values };
+        var filter = {};
+        filter[attribute] = { '$in': values };
 
-        or = this._criteria['$or'] || [];
-        or.push(criteria);
+        or = this._filter['$or'] || [];
+        or.push(filter);
 
-        this._criteria['$or'] = or;
+        this._filter['$or'] = or;
       }
 
       return this;
@@ -443,19 +510,19 @@ module.exports = {
 
       // If passing in a nested criteria, just push it to the criteria
       if (arguments.length === 1 && _.isPlainObject(attribute)) {
-        or = this._criteria['$or'] || [];
+        or = this._filter['$or'] || [];
         or.push(attribute);
-        this._criteria['$or'] = or;
+        this._filter['$or'] = or;
 
         // Otherwise build up an OR clause
       } else {
-        var criteria = {};
-        criteria[attribute] = { '$nin': values };
+        var filter = {};
+        filter[attribute] = { '$nin': values };
 
-        or = this._criteria['$or'] || [];
-        or.push(criteria);
+        or = this._filter['$or'] || [];
+        or.push(filter);
 
-        this._criteria['$or'] = or;
+        this._filter['$or'] = or;
       }
 
       return this;
@@ -805,7 +872,7 @@ module.exports = {
       var nestedCriteria = _query.toObject();
 
       // Attach the nested conditional to the parent query
-      buildQueryPiece(fn, [nestedCriteria.criteria], query);
+      buildQueryPiece(fn, [nestedCriteria.filter], query);
     };
 
 

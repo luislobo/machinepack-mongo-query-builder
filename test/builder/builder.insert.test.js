@@ -18,12 +18,12 @@ describe('Builder ::', function() {
       .exec(function(err, result) {
         assert(!err);
         assert.deepEqual(result, {
-          collection: 'books',
-          fn: 'insert',
-          values: {
-            title: 'Slaughterhouse Five'
-          },
-          options: {}
+          insert: 'books',
+          documents: [
+            {
+              title: 'Slaughterhouse Five'
+            }
+          ]
         });
 
         return done();
@@ -45,13 +45,13 @@ describe('Builder ::', function() {
       .exec(function(err, result) {
         assert(!err, err);
         assert.deepEqual(result, {
-          collection: 'books',
-          fn: 'insert',
-          values: {
-            title: 'Slaughterhouse Five',
-            author: 'Kurt Vonnegut'
-          },
-          options: {}
+          insert: 'books',
+          documents: [
+            {
+              title: 'Slaughterhouse Five',
+              author: 'Kurt Vonnegut'
+            }
+          ]
         });
 
         return done();

@@ -16,12 +16,14 @@ describe('Builder ::', function() {
       .exec(function(err, result) {
         assert(!err);
         assert.deepEqual(result, {
-          collection: 'books',
-          fn: 'find',
-          fields: {},
-          options: {},
-          criteria: {}
+          find: 'books',
+          filter: {},
+          sort: {},
+          projection: {},
+          skip: 0,
+          limit: 0
         });
+
 
         return done();
       });
@@ -39,11 +41,12 @@ describe('Builder ::', function() {
       .exec(function(err, result) {
         assert(!err);
         assert.deepEqual(result, {
-          collection: 'books',
-          fn: 'find',
-          fields: { title: 1, author: 1, year: 1 },
-          options: {},
-          criteria: {}
+          find: 'books',
+          filter: {},
+          sort: {},
+          projection: { title: 1, author: 1, year: 1 },
+          skip: 0,
+          limit: 0
         });
 
         return done();

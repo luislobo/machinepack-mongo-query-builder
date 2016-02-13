@@ -23,17 +23,18 @@ describe('Builder ::', function() {
       .exec(function(err, result) {
         assert(!err);
         assert.deepEqual(result, {
-          collection: 'users',
-          fn: 'find',
-          criteria: {
+          find: 'users',
+          filter: {
             id: {
               '$nin': [1, 2, 3]
             }
           },
-          options: {},
-          fields: {
+          sort: {},
+          projection: {
             name: 1
-          }
+          },
+          skip: 0,
+          limit: 0
         });
 
         return done();
@@ -70,9 +71,8 @@ describe('Builder ::', function() {
       .exec(function(err, result) {
         assert(!err);
         assert.deepEqual(result, {
-          collection: 'users',
-          fn: 'find',
-          criteria: {
+          find: 'users',
+          filter: {
             '$or': [
               {
                 id: {
@@ -86,10 +86,12 @@ describe('Builder ::', function() {
               }
             ]
           },
-          options: {},
-          fields: {
+          sort: {},
+          projection: {
             name: 1
-          }
+          },
+          skip: 0,
+          limit: 0
         });
 
         return done();
@@ -127,9 +129,8 @@ describe('Builder ::', function() {
       .exec(function(err, result) {
         assert(!err);
         assert.deepEqual(result, {
-          collection: 'users',
-          fn: 'find',
-          criteria: {
+          find: 'users',
+          filter: {
             '$or': [
               {
                 id: {
@@ -144,10 +145,12 @@ describe('Builder ::', function() {
               }
             ]
           },
-          options: {},
-          fields: {
+          sort: {},
+          projection: {
             name: 1
-          }
+          },
+          skip: 0,
+          limit: 0
         });
 
         return done();

@@ -383,6 +383,50 @@ module.exports = {
       return this;
     };
 
+    // And Where
+    // @param {String} attribute
+    // @param {String} attribute
+    // @param {String|Number} value
+    Query.prototype.andWhere = function andWhere(attribute, modifier, value) {
+      var and;
+
+      if (_.isUndefined(value)) {
+        value = modifier;
+        modifier = undefined;
+      }
+
+      // If passing in a nested criteria, just push it to the criteria
+      if (arguments.length === 1 && _.isPlainObject(attribute)) {
+        and = this._filter['$and'] || [];
+        and.push(attribute);
+        this._filter['$and'] = and;
+
+        // Otherwise build up an OR clause
+      } else {
+        var filter = {};
+        if (modifier) {
+          if (modifier !== 'like') {
+            var val = {};
+            val[normalizeModifier(modifier)] = normalizeValue(value, modifier);
+            value = val;
+
+            // Else just normalize the value
+          } else {
+            value = normalizeValue(value, modifier);
+          }
+        }
+
+        filter[attribute] = value;
+
+        and = this._filter['$and'] || [];
+        and.push(filter);
+
+        this._filter['$and'] = and;
+      }
+
+      return this;
+    };
+
     // Or Where
     // @param {String} attribute
     // @param {String} modifier
@@ -774,7 +818,7 @@ module.exports = {
     //  ╚═╝╚═╝╩╩═╝═╩╝  ╚═╝╩╚═╚═╝╚═╝╩  ╩╝╚╝╚═╝
     //
     // Given a set of expressions, create a nested expression.
-    var buildGrouping = function buildGrouping(expressionGroup, query) {
+    var buildGrouping = function buildGrouping(expressionGroup, modifier, query) {
       // Build a new Query object to get the nested criteria built up
       var _query = new Query();
       _query.select('*');
@@ -787,8 +831,13 @@ module.exports = {
         strip: ['NOT']
       });
 
-      // Default the fn value to `orWhere`
+      // Default the fn value to `orWhere` unless an AND modifier was
+      // specifically set
       var fn = 'orWhere';
+
+      if (modifier && _.isArray(modifier) && _.first(modifier) === 'AND') {
+        fn = 'andWhere';
+      }
 
       // Check the modifier to see if a different function other than
       // WHERE should be used. The most common is NOT.
@@ -993,8 +1042,12 @@ module.exports = {
         var queryExpression = _.first(expressionGroup);
         var modifiers = checkForModifiers(queryExpression);
 
-        // Default the fn value to `orWhere`
+        // Default the fn value to `orWhere` unless an AND modifier was passed in
         var fn = 'orWhere';
+
+        if (modifier && _.isArray(modifier) && _.first(modifier) === 'AND') {
+          fn = 'andWhere';
+        }
 
         // Check the modifier to see if a different function other than
         // OR WHERE should be used. The most common is OR WHERE NOT IN.
@@ -1027,7 +1080,7 @@ module.exports = {
       }
 
       // Otherwise build the grouping function
-      buildGrouping(expressionGroup, query);
+      buildGrouping(expressionGroup, modifier, query);
     };
 
 
@@ -1196,6 +1249,13 @@ module.exports = {
         return;
       }
 
+      // AND Modifier
+      if (expr.type === 'CONDITION' && expr.value === 'AND') {
+        options.modifier = options.modifier || [];
+        options.modifier.push(expr.value);
+        return;
+      }
+
       // Handle sets of values being inserted
       if (options.identifier === 'INSERT' && (expr.type === 'KEY' || expr.type === 'VALUE')) {
         options.expression = insertBuilder(expr, options.expression, options.query);
@@ -1235,6 +1295,9 @@ module.exports = {
       // If the expression is an array then the values should be grouped. Unless
       // they are describing join logic.
       if (_.isArray(expr)) {
+        // Join's are not supported in any way, this makes sure if somehow we
+        // come across one, it's just ignored. It should have been validated
+        // elsewhere by now.
         var joinTypes = [
           'JOIN',
           'INNERJOIN',
@@ -1249,7 +1312,7 @@ module.exports = {
 
         var isJoin = _.indexOf(joinTypes, options.identifier);
         if (isJoin === -1) {
-          processGroup(expr, false, options.expression, undefined, options.query);
+          processGroup(expr, false, options.expression, options.modifier, options.query);
           return;
         }
       }

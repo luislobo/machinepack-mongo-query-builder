@@ -18,7 +18,7 @@
   "dependencies": {
     "lodash": "4.3.0",
     "machine": "10.4.0",
-    "machinepack-waterline-query-parser": "particlebanana/machinepack-waterline-query-parser"
+    "machinepack-waterline-query-parser": "particlebanana/machinepack-waterline-query-parser#b1c8d09bdf3f514070ee70e3054f74d3007cc75d"
   },
   "devDependencies": {
     "eslint": "1.10.3",

@@ -9,5 +9,4 @@ A helper for building MongoDB queries from RQL syntax.
 * Doesn't handle Join's
 * Doesn't handle Union or Union All
 * Doesn't handle Sub Queries
-
-* Aggregations are still a work in progress but will be supported
+* Aggregations are still a work in progress but will be supported. They differ a bit from SQL where they must groupBy in order to be valid.

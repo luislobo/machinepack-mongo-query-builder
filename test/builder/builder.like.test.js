@@ -23,7 +23,9 @@ describe('Builder ::', function() {
         assert.deepEqual(result, {
           find: 'users',
           filter: {
-            name: /Test/
+            name: {
+              '$regex': 'Test'
+            }
           },
           sort: {},
           projection: {},
@@ -67,7 +69,9 @@ describe('Builder ::', function() {
           filter: {
             '$or': [
               {
-                name: /Test/
+                name: {
+                  '$regex': 'Test'
+                }
               },
               {
                 id: {
@@ -118,7 +122,9 @@ describe('Builder ::', function() {
           filter: {
             '$or': [
               {
-                name: /^Test/
+                name: {
+                  '$regex': '^Test'
+                }
               },
               {
                 id: {
@@ -169,7 +175,9 @@ describe('Builder ::', function() {
           filter: {
             '$or': [
               {
-                name: /Test$/
+                name: {
+                  '$regex': 'Test$'
+                }
               },
               {
                 id: {

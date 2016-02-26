@@ -36,7 +36,9 @@ describe('Builder ::', function() {
           filter: {
             '$or': [
               {
-                name: /Test/
+                name: {
+                  '$regex': 'Test'
+                }
               },
               {
                 id: {

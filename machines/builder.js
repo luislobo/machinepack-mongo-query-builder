@@ -620,7 +620,8 @@ module.exports = {
         '>=': '$gte',
         '<': '$lt',
         '<=': '$lte',
-        '<>': '$ne'
+        '<>': '$ne',
+        '!': '$ne'
       };
 
       var normalizedModifier = modifier;

@@ -226,9 +226,15 @@ module.exports = {
       }
 
       if (modifier) {
-        var filter = this._filter[attribute] || {};
-        filter[normalizeModifier(modifier)] = normalizeValue(value, modifier);
-        this._filter[attribute] = filter;
+        if (modifier !== 'like') {
+          var filter = this._filter[attribute] || {};
+          filter[normalizeModifier(modifier)] = normalizeValue(value, modifier);
+          this._filter[attribute] = filter;
+
+          // Else just normalize the value
+        } else {
+          this._filter[attribute] = normalizeValue(value, modifier);
+        }
       } else {
         this._filter[attribute] = normalizeValue(value, modifier);
       }
@@ -258,11 +264,19 @@ module.exports = {
       }
 
       if (modifier) {
-        var filter = this._filter[attribute] || {};
-        filter[normalizeModifier(modifier)] = normalizeValue(value, modifier);
-        this._filter[attribute] = {
-          '$not': filter
-        };
+        if (modifier !== 'like') {
+          var filter = this._filter[attribute] || {};
+          filter[normalizeModifier(modifier)] = normalizeValue(value, modifier);
+          this._filter[attribute] = {
+            '$not': filter
+          };
+
+          // Else just normalize the value
+        } else {
+          this._filter[attribute] = {
+            '$not': normalizeValue(value, modifier)
+          };
+        }
       } else {
         this._filter[attribute] = {
           '$ne': normalizeValue(value, modifier)
@@ -639,7 +653,7 @@ module.exports = {
           val = '^' + value.replace(/%/g, '');
         }
 
-        value = new RegExp(val);
+        value = { '$regex': val };
       }
 
       return value;

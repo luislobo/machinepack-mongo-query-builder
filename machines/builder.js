@@ -146,12 +146,9 @@ module.exports = {
         query.deletes = [];
 
         var del = {
-          q: this._filter
+          q: this._filter,
+          limit: 0
         };
-
-        if (this._limit) {
-          del.q.limit = this._limit;
-        }
 
         query.deletes.push(del);
       }

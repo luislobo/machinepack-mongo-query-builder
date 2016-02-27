@@ -13,7 +13,7 @@
     "machines",
     "machinepack"
   ],
-  "author": "",
+  "author": "Cody Stoltman <particlebanana@gmail.com>",
   "license": "MIT",
   "dependencies": {
     "lodash": "4.5.1",

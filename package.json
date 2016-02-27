@@ -16,8 +16,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "lodash": "4.3.0",
-    "machine": "10.4.0",
+    "lodash": "4.5.1",
+    "machine": "12.1.0",
     "machinepack-waterline-query-parser": "particlebanana/machinepack-waterline-query-parser#b1c8d09bdf3f514070ee70e3054f74d3007cc75d"
   },
   "devDependencies": {
